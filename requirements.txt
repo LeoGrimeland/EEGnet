@@ -1,0 +1,8 @@
+torch
+torchvision
+numpy
+mne
+scipy
+matplotlib
+scikit-learn
+gradio
