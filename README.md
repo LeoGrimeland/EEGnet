@@ -2,6 +2,8 @@ Project EEGNet.
 
 Phase 0:
 
+---Rewrite---
+
 Objective
 Explore the PhysioNet EEG Motor Movement/Imagery Dataset for one subject to understand the structure of EEG data and identify the neural signal (Event-Related Desynchronization) that underpins motor imagery classification.
 Dataset
