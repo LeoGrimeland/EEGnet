@@ -53,7 +53,7 @@ class EEGNet(nn.Module):
         self.avgpool = nn.AvgPool2d((1, 4)) #Every 4 time points get averaged togheter to 1 value.
 
         #Drpout to reduce reliance on any one feature and prevent overfitting.
-        self.dropout = nn.Dropout(0.25) #Output: (batch, D*F1, 1, 160)
+        self.dropout = nn.Dropout(0.5) #Output: (batch, D*F1, 1, 160)
 
         #Depthwise temporal cnonv2D again to learn more complex temporal patterns across the 
         #whole feature map. 

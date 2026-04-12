@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+cache/
+*.npz
+~/mne_data/
+.ipynb_checkpoints/

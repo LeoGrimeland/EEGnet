@@ -7,7 +7,7 @@ import torch.nn as nn
 #is size 64 (band power features for each channel) and output is size 2 (left vs right hand movement).
 
 class EEGMLP(nn.Module):
-    def __init__(self, input_size=64, hidden_size=24, output_size=2):
+    def __init__(self, input_size=64, hidden_size=45, output_size=2):
         #super() used to call the __init__() method of the parent class.
         super().__init__()
         #Define layers.
