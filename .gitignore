@@ -5,3 +5,4 @@ cache/
 *.npz
 ~/mne_data/
 .ipynb_checkpoints/
+.DS_Store
