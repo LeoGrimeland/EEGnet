@@ -34,7 +34,7 @@ Phase 2:
 
 Built train and model for a simple MLP. First run achieved accuracy of 48% which is worse than a 
 guess. Built an additional data loader class to handle the type of data a MLP needs as input, here the band power across 64 channels (8, 64). Had to get the logic for computing band power from train
-to data_loader, and adding standardisation improved performance to 62%. Stringindications of overfitting, however changing the hidden layer size up or down from 32 decreased performance to 52-56%. 
+to data_loader, and adding standardisation improved performance to 62%. Strong indications of overfitting, however changing the hidden layer size up or down from 32 decreased performance to 52-56%. 
 
 Phase 3:
 
@@ -60,3 +60,35 @@ We will modify the data_loader to handle this. We also need to ensure that sklea
 Bug when trying to run the model on 109 subject: trial 3899 has shape (1, 64, 513) meaning it was not sampled at the same rate as others (160 Hz). Modified data_loader to resample every trial to 160.
 
 With all of the available data (109 subjects) we achieved a performance of 0.7514, higher than some papers out there. 
+
+Phase 5:
+
+Noah Frontend.
+
+Phase 6: 
+
+Jepa model. Structure is going to deviate from industry standard here. We need a context model to produce the 320 length vector of masked embeddings (masked parts is what the predictor model will try to recreate). This will be of the same EEGNet type as in eegnet_model.py, altough with a detached final linear layer, so its output will be the pure 320 length vector of feature maps (with some masked) produced by the final convolutional layer in the context encoder. This vector is flattened, so it can be used as a input to the midlevel MLP (made up of linear layers) along with a 2D vector of the indices of the masked portion of the feature maps. This midlevel layer is the predictor, whose function is to estimate the values of the masked portion of the input vector. It compares its output to the output of the target encoder, which again is a EEGNet whose output is the full representation of the same signal passed through the context encoding model. The error between that prediction and the actual values produced by the target encoder will be measured and minimised using L2 norm (MSE). 
+
+The industry standard is to use transformers for the context and target encoders, as well as the prediction layer. The transformer arhictecture maps naturally to the task of masking a part of an image or signal due to its ability to break the input into chunks and learn about how these patches infuence each other (easy to mask patches of input). We will deviate from this standard here as the logic for EEGNets is already established and customised to our EEG data, we are less familiar with the transformer architecture and most importantly transformers are very data hungry. We have a limited and rather small dataset (64 channels x 641 time points, 41,000 values per trial, and we have 4900 trials across 109 subjects). Transformers must learn the relationship between features through data, that electrodes that are spatial neighbours tend to coactivate. EEGNet's architecture gives us this for free, as it is specially built for EEG data (temporal filtering -> spatial filtering -> temporal pattern detection) and convolutional kernels inherently capture local patterns. These features of EEGNet's allows us to implement a Jepa architecture with limited data, transformers would have to rediscover what the EEGNet's architecture already captures. Thus: We use EEGNet as the encoder backbone rather than a Vision Transformer, as is standard in I-JEPA, because the inductive biases of the convolutional architecture are better matched to our data regime (4,900 trials). Transformer based encoders would be a natural extension given a larger EEG corpus
+
+The biggest problem that arises with the use of EEGNet encoders is with the masking of a portion of the input. While a transformer can simply mask a patch of input as removing patches does not break the model, our EEGNet expects a full (1, 64, 641) input tensor to which our kernel size is calibrated. To solve this we substitute patch masking with simply zeroing out a region of the input. The context encoder still sees the full tensor, but our masked portion has all zeros. It should be mentioned that this is a tiny waste of computation, as the zeros still have to be processed. So what are we masking? Here we will mask the temporal signal of the EEG, as the features we want the modle to recognise generally evolve over time in the form of a ERD. We could also implement spatial masking across electrodes, which is a reasonable future extension.
+
+For our loss function we will use L2 MSE, specifically loss = MSE(predictor(context_output, masked_indices), target_output.detach()). The detach is to stop gradient flow through the target encoder. This is done for a few deep reasons:
+
+The collapse problem. 
+
+Here is the pipeline:
+
+Step 1 — Modify EEGNet to be a headless encoder. Factor out the classifier head so you have a clean encode() method that returns the 320-dim embedding. The classifier becomes a separate module you attach for fine-tuning.
+
+Step 2 — Build the masking module. A function that takes an EEG tensor (batch, 1, 64, 641), picks a random contiguous time block to mask (say, 25–50% of the timepoints), zeros it out, and returns both the masked tensor and the mask position info.
+
+Step 3 — Build the predictor MLP. Something like (320 + 2) → 256 → 256 → 320. Small and deliberate — remember, too much capacity here lets the predictor cheat.
+
+Step 4 — Build the EMA update function. After each optimizer step, update target encoder weights: θ_target = τ * θ_target + (1 - τ) * θ_context.
+
+Step 5 — Write the pretraining loop. For each batch: mask the input, pass masked input through context encoder, pass full input through target encoder (with torch.no_grad()), run predictor, compute MSE loss on normalized embeddings, backprop through predictor and context encoder only, then do EMA update.
+
+Step 6 — Write the fine-tuning script. Load the pretrained context encoder weights, attach a fresh classifier head, freeze the encoder (or use a low learning rate on it), train on the labeled left-vs-right task. Compare accuracy to your Phase 4 baseline.
+
+Step 7 — Ablation and analysis. Run without pretraining as control. Try different mask ratios. Try freezing vs. unfreezing the encoder during fine-tuning. This is what makes the portfolio piece convincing — it shows you understand the design space, not just one configuration.

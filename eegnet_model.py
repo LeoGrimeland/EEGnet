@@ -66,7 +66,7 @@ class EEGNet(nn.Module):
         #First we flatten the (batch, F2, 1, 20) output to 1D vector of length 320 features.
         self.classifier = nn.Linear(F2 * (641 // 4 // 8), n_classes)
 
-    def forward(self, x):
+    def encode(self, x):
         x = self.conv1(x)
         x = self.batchnorm1(x)
         x = self.depthwise_conv(x)
@@ -84,8 +84,12 @@ class EEGNet(nn.Module):
         #Flatten the output to (batch, F2*20) for the classifier.
         x = x.view(x.size(0), -1)
 
-        logits = self.classifier(x)
-        return logits
+        return x
+
+    def forward(self, x):
+        x = self.encode(x)
+        x = self.classifier(x)
+        return x
 
 
 
