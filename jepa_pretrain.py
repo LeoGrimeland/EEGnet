@@ -53,6 +53,9 @@ for epoch in range(epochs):
     for batch_idx, (X, y) in enumerate(loader):
         X = X.to(device)
 
+        #Per trial normalization to match phase 4 and finetuning preprocessing.
+        X = (X - X.mean(dim=(2,3), keepdim=True)) / X.std(dim=(2, 3), keepdim=True)
+
         #Mask the input.
         masked_x, positions = mask_input(X)
 
@@ -92,6 +95,8 @@ for epoch in range(epochs):
             context_encoder.eval()
             sample_batch, _ = next(iter(loader))
             sample_batch = sample_batch.to(device)
+            #Normalize:
+            sample_batch = (sample_batch - sample_batch.mean(dim=(2, 3), keepdim=True)) / sample_batch.std(dim=(2, 3), keepdim=True)
             embeddings = context_encoder.encode(sample_batch)
             mean_var = embeddings.var(dim=0).mean().item()
             per_dim_std = embeddings.std(dim=0)
