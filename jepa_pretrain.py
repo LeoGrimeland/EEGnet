@@ -7,6 +7,12 @@ from data_loader import EEGBCIDataset
 from eegnet_model import EEGNet
 from jepa_model import Predictor, mask_input, ema_update
 
+if os.path.exists('/content/drive/MyDrive'):
+    CHECKPOINT_DIR = '/content/drive/MyDrive/bci_project/checkpoints'
+else:
+    CHECKPOINT_DIR = './checkpoints'
+os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
 #Hyperparams:
 Batch_size=32
 learning_rate = 1e-3
@@ -38,9 +44,6 @@ for param in target_encoder.parameters():
 #by the loss, but not the target encoder as it is only being updated by the ema update.
 optimizer = torch.optim.Adam(list(context_encoder.parameters()) + list(predictor.parameters()),
                               lr=learning_rate)
-
-#Make a directory to save model checkpoints. 
-os.makedirs('checkpoints', exist_ok=True)
 
 #--TRAINING LOOP--
 
@@ -107,7 +110,7 @@ for epoch in range(epochs):
     
     #Checkpoint every 10 epochs.
     if (epoch + 1) % 10 == 0:
-        torch.save(context_encoder.state_dict(), f'checkpoints/jepa_epoch_{epoch+1}.pt')
+        torch.save(context_encoder.state_dict(), f'{CHECKPOINT_DIR}/jepa_epoch_{epoch+1}.pt')
 
     if epoch == 0 and batch_idx == 0:
         print(f"context_emb: mean={context_embeddings.mean().item():.4f}, std={context_embeddings.std().item():.4f}")
@@ -116,7 +119,7 @@ for epoch in range(epochs):
         print(f"loss: {loss.item():.6f}")
     
 #Final save after training.
-torch.save(context_encoder.state_dict(), 'checkpoints/jepa_final.pt')
+torch.save(context_encoder.state_dict(), f'{CHECKPOINT_DIR}/jepa_final.pt')
 
 
 
