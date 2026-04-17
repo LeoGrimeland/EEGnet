@@ -10,7 +10,7 @@ from jepa_model import Predictor, mask_input, ema_update
 #Hyperparams:
 Batch_size=32
 learning_rate = 1e-3
-epochs = 5
+epochs = 50
 tau = 0.996
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 subjects = list(range(1, 110))
