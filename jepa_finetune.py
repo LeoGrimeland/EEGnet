@@ -2,8 +2,7 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import GroupKFold
 from torch.utils.data import DataLoader, TensorDataset
-from data_loader import EEGBCIDataset, BandPowerDataset
-from model import EEGMLP
+from data_loader import EEGBCIDataset
 from eegnet_model import EEGNet
 
 #Finetuning for JEPA pretrained model. Copied the same train file from train.py, but will use the
@@ -14,7 +13,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Using device: {device}')
 
 #Hyperparameters:
-learning_rate = 1e-3
+learning_rate = 1e-4
 batch_size = 64
 subjects = list(range(1, 110))
 runs = [4, 8, 12]
